@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>シンプル家計簿</title>
+    <meta name="description" content="ブラウザで開くだけですぐ使える、登録・通信不要のシンプルな家計簿アプリ。今月の合計やカテゴリ別支出をひと目で確認できます。" />
+    <meta property="og:title" content="シンプル家計簿" />
+    <meta property="og:description" content="ブラウザで開くだけですぐ使える、登録・通信不要のシンプルな家計簿アプリ。今月の合計やカテゴリ別支出をひと目で確認できます。" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --primary-light: #eff6ff;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --danger: #ef4444;
+        --danger-light: #fef2f2;
+        --radius: 14px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        line-height: 1.5;
+        padding-bottom: 60px;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 16px 14px;
+      }
+
+      /* ヘッダー */
+      header {
+        text-align: center;
+        padding: 12px 0 16px;
+      }
+
+      header h1 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      header p {
+        font-size: 0.82rem;
+        color: var(--text-sub);
+        margin-top: 4px;
+      }
+
+      /* 月選択バー */
+      .month-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #ffffff;
+        border-radius: var(--radius);
+        padding: 8px 12px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        margin-bottom: 16px;
+      }
+
+      .month-nav-btn {
+        background: #f1f5f9;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #334155;
+        padding: 10px 14px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 44px;
+        transition: all 0.15s ease;
+      }
+
+      .month-nav-btn:active {
+        transform: scale(0.96);
+        background: #e2e8f0;
+      }
+
+      .current-month-display {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #0f172a;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .current-month-display .this-month-tag {
+        font-size: 0.68rem;
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+
+      /* 今月の合計サマリーカード */
+      .summary-card {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        color: #ffffff;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 16px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .summary-card::after {
+        content: "";
+        position: absolute;
+        top: -30%;
+        right: -20%;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+
+      .summary-header {
+        font-size: 0.88rem;
+        font-weight: 600;
+        opacity: 0.9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .summary-amount {
+        font-size: 2.25rem;
+        font-weight: 900;
+        margin: 8px 0 12px;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .summary-amount span {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-right: 4px;
+      }
+
+      .summary-stats {
+        display: flex;
+        gap: 16px;
+        font-size: 0.8rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 10px;
+      }
+
+      .summary-stats div {
+        flex: 1;
+      }
+
+      .summary-stats-label {
+        opacity: 0.8;
+      }
+
+      .summary-stats-val {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+
+      /* 円グラフセクション */
+      .chart-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 4px 0 8px;
+      }
+
+      .pie-svg-container {
+        width: 190px;
+        height: 190px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .pie-svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .pie-slice {
+        cursor: pointer;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        transform-origin: 100px 100px;
+      }
+
+      .pie-slice:hover {
+        opacity: 0.88;
+        transform: scale(1.03);
+      }
+
+      .chart-center-title {
+        font-size: 11px;
+        fill: #64748b;
+        font-weight: 600;
+        text-anchor: middle;
+      }
+
+      .chart-center-amount {
+        font-size: 14px;
+        fill: #0f172a;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+
+      /* 凡例リスト */
+      .legend-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+
+      @media (min-width: 440px) {
+        .legend-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .legend-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        background: #f8fafc;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .legend-card:hover, .legend-card:active {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+      }
+
+      .legend-card.active-filter {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+      }
+
+      .legend-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .legend-title {
+        font-weight: 700;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .legend-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+
+      .legend-pct-tag {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #475569;
+        background: #e2e8f0;
+        padding: 2px 6px;
+        border-radius: 999px;
+      }
+
+      .legend-val {
+        font-weight: 800;
+        color: #0f172a;
+      }
+
+      /* カテゴリごとの合計 */
+      .section-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        margin-bottom: 16px;
+      }
+
+      .section-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .section-subtitle {
+        font-size: 0.75rem;
+        font-weight: normal;
+        color: var(--text-sub);
+      }
+
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .cat-sum-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 12px;
+        transition: all 0.15s ease;
+        cursor: pointer;
+      }
+
+      .cat-sum-item:hover, .cat-sum-item:active {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+      }
+
+      .cat-sum-item.active-filter {
+        border-color: var(--primary);
+        background: var(--primary-light);
+      }
+
+      .cat-sum-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+
+      .cat-sum-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .cat-sum-count {
+        font-size: 0.72rem;
+        color: var(--text-sub);
+      }
+
+      .cat-sum-amount {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 6px;
+      }
+
+      .cat-sum-bar-bg {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .cat-sum-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.3s ease;
+      }
+
+      /* 入力フォームカード */
+      .form-group {
+        margin-bottom: 14px;
+      }
+
+      .form-label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 6px;
+      }
+
+      .form-input {
+        width: 100%;
+        font-size: 1.05rem;
+        padding: 12px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        background: #ffffff;
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        -webkit-appearance: none;
+      }
+
+      .form-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      }
+
+      .date-quick-btns {
+        display: flex;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .quick-date-btn {
+        background: #f1f5f9;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        min-height: 36px;
+      }
+
+      .quick-date-btn:active {
+        background: #e2e8f0;
+      }
+
+      /* 金額入力＋クイック追加ボタン */
+      .amount-wrapper {
+        position: relative;
+      }
+
+      .amount-wrapper .currency-symbol {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #64748b;
+        pointer-events: none;
+      }
+
+      .amount-input {
+        padding-left: 36px !important;
+        font-size: 1.35rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.02em;
+      }
+
+      .quick-amount-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .quick-amt-btn {
+        background: #f8fafc;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 10px 4px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        min-height: 46px;
+        transition: all 0.1s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .quick-amt-btn:active {
+        transform: scale(0.96);
+        background: #e2e8f0;
+      }
+
+      .quick-amt-btn.clear-btn {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+      }
+
+      /* カテゴリ選択ボタン（大きめで押しやすい） */
+      .category-selector-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .cat-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: #ffffff;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+        min-height: 54px; /* スマホで押しやすい大きめのサイズ */
+        transition: all 0.15s ease;
+        text-align: left;
+      }
+
+      .cat-btn:active {
+        transform: scale(0.97);
+      }
+
+      .cat-btn .cat-icon {
+        font-size: 1.35rem;
+        width: 32px;
+        text-align: center;
+      }
+
+      .cat-btn.selected {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+      }
+
+      /* 登録ボタン（最重要・特大サイズ） */
+      .submit-btn {
+        width: 100%;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 14px;
+        padding: 16px;
+        font-size: 1.15rem;
+        font-weight: 800;
+        cursor: pointer;
+        min-height: 56px; /* スマホ対応 */
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 18px;
+        transition: all 0.15s ease;
+      }
+
+      .submit-btn:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      }
+
+      /* 支出履歴リスト */
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .filter-active-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+
+      .filter-reset-btn {
+        background: none;
+        border: none;
+        color: #1d4ed8;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 800;
+        padding: 0 2px;
+      }
+
+      .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .history-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        transition: background-color 0.1s ease;
+      }
+
+      .item-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .item-cat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .item-details {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .item-cat-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .item-date {
+        font-size: 0.72rem;
+        color: var(--text-sub);
+        margin-top: 1px;
+      }
+
+      .item-memo {
+        font-size: 0.8rem;
+        color: #475569;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .item-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .item-amount {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        text-align: right;
+      }
+
+      .item-del-btn {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        min-height: 36px;
+        min-width: 44px;
+        transition: all 0.15s ease;
+      }
+
+      .item-del-btn:hover, .item-del-btn:active {
+        background: var(--danger-light);
+        border-color: #fecaca;
+        color: var(--danger);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 36px 16px;
+        color: var(--text-sub);
+      }
+
+      .empty-state .empty-icon {
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+        opacity: 0.7;
+      }
+
+      .empty-state p {
+        font-size: 0.88rem;
+        margin-bottom: 12px;
+      }
+
+      .sample-data-btn {
+        background: #f1f5f9;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+        min-height: 42px;
+      }
+
+      /* データ操作フッター */
+      .data-tools {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
+
+      .tool-btn {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+        min-height: 38px;
+      }
+
+      .tool-btn:active {
+        background: #f1f5f9;
+      }
+
+      .toast-msg {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: rgba(15, 23, 42, 0.92);
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        pointer-events: none;
+        transition: transform 0.25s ease;
+        z-index: 9999;
+      }
+
+      .toast-msg.show {
+        transform: translateX(-50%) translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ヘッダー -->
+      <header>
+        <h1>👛 シンプル家計簿</h1>
+        <p>ブラウザに自動保存・登録不要ですぐ使えます</p>
+      </header>
+
+      <!-- 月切り替えバー -->
+      <div class="month-bar">
+        <button class="month-nav-btn" id="prevMonthBtn" aria-label="前月へ">
+          ◀ 前月
+        </button>
+        <div class="current-month-display">
+          <span id="currentMonthText">2026年11月</span>
+          <span class="this-month-tag" id="thisMonthBadge" style="display: none;">今月</span>
+        </div>
+        <button class="month-nav-btn" id="nextMonthBtn" aria-label="翌月へ">
+          翌月 ▶
+        </button>
+      </div>
+
+      <!-- 今月の合計サマリー -->
+      <div class="summary-card">
+        <div class="summary-header">
+          <span id="summaryMonthTitle">今月の支出合計</span>
+          <span id="recordCountBadge">0 件</span>
+        </div>
+        <div class="summary-amount">
+          <span>¥</span><span id="totalAmountDisplay">0</span>
+        </div>
+        <div class="summary-stats">
+          <div>
+            <div class="summary-stats-label">1日あたりの平均</div>
+            <div class="summary-stats-val" id="dailyAvgDisplay">¥0 / 日</div>
+          </div>
+          <div>
+            <div class="summary-stats-label">最高支出カテゴリ</div>
+            <div class="summary-stats-val" id="topCategoryDisplay">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 今月のカテゴリ別支出割合（円グラフ＋凡例） -->
+      <div class="section-card">
+        <div class="section-title">
+          <span>支出の割合（円グラフ）</span>
+          <span class="section-subtitle">タップで絞り込み</span>
+        </div>
+        <div class="chart-wrapper">
+          <div class="pie-svg-container">
+            <svg viewBox="0 0 200 200" class="pie-svg" id="pieChartSvg" aria-label="支出割合の円グラフ">
+              <!-- JSでSVG描画 -->
+            </svg>
+          </div>
+          <!-- 凡例リスト（色・カテゴリ・金額・比率） -->
+          <div class="legend-grid" id="chartLegendGrid">
+            <!-- JSで凡例を描画 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- カテゴリごとの合計 -->
+      <div class="section-card">
+        <div class="section-title">
+          <span>カテゴリ別合計</span>
+          <span class="section-subtitle">タップで履歴を絞り込み</span>
+        </div>
+        <div class="category-grid" id="categorySummaryGrid">
+          <!-- JSで自動描画 -->
+        </div>
+      </div>
+
+      <!-- 新規支出の入力フォーム -->
+      <div class="section-card">
+        <div class="section-title">
+          <span>新しい支出を追加</span>
+        </div>
+
+        <form id="expenseForm">
+          <!-- 日付入力 -->
+          <div class="form-group">
+            <label class="form-label" for="expenseDate">日付</label>
+            <input type="date" id="expenseDate" class="form-input" required />
+            <div class="date-quick-btns">
+              <button type="button" class="quick-date-btn" id="todayBtn">今日</button>
+              <button type="button" class="quick-date-btn" id="yesterdayBtn">昨日</button>
+            </div>
+          </div>
+
+          <!-- 金額入力 -->
+          <div class="form-group">
+            <label class="form-label" for="expenseAmount">金額</label>
+            <div class="amount-wrapper">
+              <span class="currency-symbol">¥</span>
+              <input
+                type="number"
+                id="expenseAmount"
+                class="form-input amount-input"
+                placeholder="0"
+                min="1"
+                step="1"
+                required
+              />
+            </div>
+            <!-- スマホ用クイック金額追加ボタン -->
+            <div class="quick-amount-row">
+              <button type="button" class="quick-amt-btn" data-amt="100">+100</button>
+              <button type="button" class="quick-amt-btn" data-amt="500">+500</button>
+              <button type="button" class="quick-amt-btn" data-amt="1000">+1,000</button>
+              <button type="button" class="quick-amt-btn" data-amt="5000">+5,000</button>
+            </div>
+            <div class="quick-amount-row" style="margin-top: 6px;">
+              <button type="button" class="quick-amt-btn" data-amt="10000">+10,000</button>
+              <button type="button" class="quick-amt-btn" data-amt="20000">+20,000</button>
+              <button type="button" class="quick-amt-btn" data-amt="50000">+50,000</button>
+              <button type="button" class="quick-amt-btn clear-btn" id="clearAmtBtn">クリア</button>
+            </div>
+          </div>
+
+          <!-- カテゴリ選択（押しやすい大きめボタン） -->
+          <div class="form-group">
+            <label class="form-label">カテゴリを選択</label>
+            <div class="category-selector-grid" id="categoryButtonsContainer">
+              <!-- JSで自動描画 -->
+            </div>
+            <input type="hidden" id="selectedCategory" required />
+          </div>
+
+          <!-- メモ入力 -->
+          <div class="form-group">
+            <label class="form-label" for="expenseMemo">メモ（任意）</label>
+            <input
+              type="text"
+              id="expenseMemo"
+              class="form-input"
+              placeholder="例: スーパーで食材買い出し、電車運賃など"
+              maxlength="50"
+            />
+          </div>
+
+          <!-- 登録ボタン（大きめ） -->
+          <button type="submit" class="submit-btn" id="submitBtn">
+            ➕ 支出を記録する
+          </button>
+        </form>
+      </div>
+
+      <!-- 支出履歴リスト -->
+      <div class="section-card">
+        <div class="history-header">
+          <div class="section-title" style="margin-bottom: 0;">
+            <span>支出履歴</span>
+          </div>
+          <div id="filterBadgeWrapper"></div>
+        </div>
+
+        <div class="history-list" id="historyList">
+          <!-- JSで自動描画 -->
+        </div>
+      </div>
+
+      <!-- データ管理ツール -->
+      <div class="data-tools">
+        <button type="button" class="tool-btn" id="exportCsvBtn">📥 CSVで保存</button>
+        <button type="button" class="tool-btn" id="sampleDataBtn">💡 見本データを追加</button>
+        <button type="button" class="tool-btn" id="clearAllBtn" style="color: #ef4444;">🗑️ 全データ消去</button>
+      </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast-msg" id="toast">登録しました</div>
+
+    <!-- 完全自立型JavaScript（外部ライブラリ不使用・localStorage利用・SVG円グラフ描画） -->
+    <script>
+      (function() {
+        // 定義された8つのカテゴリ（指定条件に厳密に準拠・見やすい配色）
+        const CATEGORIES = [
+          { name: "交通費", icon: "🚃", color: "#2563eb", bg: "#eff6ff" },
+          { name: "飲食代", icon: "🍽️", color: "#f97316", bg: "#fff7ed" },
+          { name: "本、雑誌", icon: "📚", color: "#8b5cf6", bg: "#f5f3ff" },
+          { name: "文具", icon: "✏️", color: "#06b6d4", bg: "#ecfeff" },
+          { name: "レジャー", icon: "🎡", color: "#ec4899", bg: "#fdf2f8" },
+          { name: "医療費", icon: "🏥", color: "#ef4444", bg: "#fef2f2" },
+          { name: "薬", icon: "💊", color: "#10b981", bg: "#ecfdf5" },
+          { name: "その他", icon: "📦", color: "#64748b", bg: "#f8fafc" },
+        ];
+
+        const STORAGE_KEY = "kakeibo_data_v1";
+
+        // アプリの状態
+        const now = new Date();
+        let selectedYear = now.getFullYear();
+        let selectedMonth = now.getMonth() + 1; // 1-12
+        let currentFilterCategory = null; // 絞り込み用
+        let selectedFormCategory = CATEGORIES[0].name;
+
+        // localStorageからデータ読み込み
+        function loadExpenses() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+          } catch (e) {
+            console.error("データ読み込み失敗:", e);
+            return [];
+          }
+        }
+
+        // localStorageへデータ保存
+        function saveExpenses(expenses) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+          } catch (e) {
+            alert("データの保存に失敗しました。容量がいっぱいの可能性があります。");
+          }
+        }
+
+        // フォーマット補助関数
+        function formatYen(num) {
+          return Number(num || 0).toLocaleString("ja-JP");
+        }
+
+        function getCategoryMeta(name) {
+          return CATEGORIES.find(c => c.name === name) || CATEGORIES[CATEGORIES.length - 1];
+        }
+
+        function padZero(n) {
+          return n < 10 ? "0" + n : "" + n;
+        }
+
+        function getTodayString() {
+          const d = new Date();
+          return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
+        }
+
+        function getYesterdayString() {
+          const d = new Date();
+          d.setDate(d.getDate() - 1);
+          return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
+        }
+
+        function showToast(msg) {
+          const toast = document.getElementById("toast");
+          toast.textContent = msg;
+          toast.classList.add("show");
+          setTimeout(() => {
+            toast.classList.remove("show");
+          }, 2000);
+        }
+
+        // カテゴリ選択ボタンを描画（フォーム内）
+        function initCategoryButtons() {
+          const container = document.getElementById("categoryButtonsContainer");
+          container.innerHTML = "";
+          CATEGORIES.forEach((cat) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "cat-btn" + (cat.name === selectedFormCategory ? " selected" : "");
+            btn.dataset.category = cat.name;
+            btn.innerHTML = `<span class="cat-icon">${cat.icon}</span><span>${cat.name}</span>`;
+            btn.addEventListener("click", () => {
+              selectedFormCategory = cat.name;
+              document.getElementById("selectedCategory").value = cat.name;
+              document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("selected"));
+              btn.classList.add("selected");
+            });
+            container.appendChild(btn);
+          });
+          document.getElementById("selectedCategory").value = selectedFormCategory;
+        }
+
+        // SVG円グラフと凡例の描画（ライブラリ不使用・自作ベクター描画）
+        function renderPieChart(categoryTotals, totalAmount) {
+          const svg = document.getElementById("pieChartSvg");
+          const legendGrid = document.getElementById("chartLegendGrid");
+          svg.innerHTML = "";
+          legendGrid.innerHTML = "";
+
+          // 支出金額が0より大きいカテゴリを降順（多い順）で抽出
+          const activeCategories = CATEGORIES
+            .map(c => ({
+              name: c.name,
+              icon: c.icon,
+              color: c.color,
+              amount: categoryTotals[c.name] || 0,
+              pct: totalAmount > 0 ? ((categoryTotals[c.name] || 0) / totalAmount) * 100 : 0
+            }))
+            .filter(c => c.amount > 0)
+            .sort((a, b) => b.amount - a.amount);
+
+          const cx = 100;
+          const cy = 100;
+          const R = 80; // 外径
+          const r = 46; // 内径（ドーナツ穴）
+
+          // 支出がない場合の空サークル表示
+          if (totalAmount === 0 || activeCategories.length === 0) {
+            svg.innerHTML = `
+              <circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="#e2e8f0" stroke-width="${R - r}" />
+              <text x="${cx}" y="${cy - 4}" class="chart-center-title">今月の支出</text>
+              <text x="${cx}" y="${cy + 16}" class="chart-center-amount" style="fill: #94a3b8;">¥0</text>
+            `;
+            legendGrid.innerHTML = `
+              <div style="grid-column: 1 / -1; text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 12px 0;">
+                今月の支出を記録すると、ここに円グラフと凡例が表示されます
+              </div>
+            `;
+            return;
+          }
+
+          // ドーナツ中央のテキスト（選択フィルタがあればそのカテゴリ名と金額、なければ合計）
+          const centerLabel = currentFilterCategory || "合計支出";
+          const centerAmt = currentFilterCategory ? (categoryTotals[currentFilterCategory] || 0) : totalAmount;
+          const centerTextHtml = `
+            <text x="${cx}" y="${cy - 6}" class="chart-center-title">${escapeHtml(centerLabel)}</text>
+            <text x="${cx}" y="${cy + 15}" class="chart-center-amount">¥${formatYen(centerAmt)}</text>
+          `;
+
+          // 1件のみ（100%）の場合
+          if (activeCategories.length === 1) {
+            const cat = activeCategories[0];
+            const isSelected = currentFilterCategory === cat.name;
+            const ringWidth = R - r;
+            const midR = (R + r) / 2;
+            const opacity = currentFilterCategory && !isSelected ? 0.35 : 1;
+
+            svg.innerHTML = `
+              <circle
+                cx="${cx}"
+                cy="${cy}"
+                r="${midR}"
+                fill="none"
+                stroke="${cat.color}"
+                stroke-width="${ringWidth}"
+                class="pie-slice"
+                style="opacity: ${opacity};"
+                data-cat="${cat.name}"
+              >
+                <title>${cat.name}: ¥${formatYen(cat.amount)} (100%)</title>
+              </circle>
+              ${centerTextHtml}
+            `;
+          } else {
+            // 複数カテゴリの場合のSVG扇形パス計算
+            let currentAngle = -Math.PI / 2; // 12時方向（上）から時計回りに描画
+            let pathsHtml = "";
+
+            activeCategories.forEach((cat) => {
+              const sliceAngle = (cat.amount / totalAmount) * (2 * Math.PI);
+              const startAngle = currentAngle;
+              const endAngle = currentAngle + sliceAngle;
+              currentAngle = endAngle;
+
+              // 外周の始点と終点
+              const x1 = cx + R * Math.cos(startAngle);
+              const y1 = cy + R * Math.sin(startAngle);
+              const x2 = cx + R * Math.cos(endAngle);
+              const y2 = cy + R * Math.sin(endAngle);
+
+              // 内周の終点と始点
+              const x3 = cx + r * Math.cos(endAngle);
+              const y3 = cy + r * Math.sin(endAngle);
+              const x4 = cx + r * Math.cos(startAngle);
+              const y4 = cy + r * Math.sin(startAngle);
+
+              const largeArc = sliceAngle > Math.PI ? 1 : 0;
+              const d = `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+
+              const isSelected = currentFilterCategory === cat.name;
+              const opacity = currentFilterCategory ? (isSelected ? "1" : "0.3") : "1";
+
+              pathsHtml += `
+                <path
+                  d="${d}"
+                  fill="${cat.color}"
+                  stroke="#ffffff"
+                  stroke-width="2"
+                  class="pie-slice"
+                  style="opacity: ${opacity};"
+                  data-cat="${cat.name}"
+                >
+                  <title>${cat.name}: ¥${formatYen(cat.amount)} (${cat.pct.toFixed(1)}%)</title>
+                </path>
+              `;
+            });
+
+            svg.innerHTML = pathsHtml + centerTextHtml;
+          }
+
+          // スライスタップ時の絞り込み切り替えイベント
+          svg.querySelectorAll(".pie-slice").forEach(slice => {
+            slice.addEventListener("click", () => {
+              const catName = slice.getAttribute("data-cat");
+              if (currentFilterCategory === catName) {
+                currentFilterCategory = null;
+              } else {
+                currentFilterCategory = catName;
+              }
+              render();
+            });
+          });
+
+          // 各カテゴリの凡例を描画（色・カテゴリ名・金額・比率）
+          activeCategories.forEach((cat) => {
+            const isSelected = currentFilterCategory === cat.name;
+            const card = document.createElement("div");
+            card.className = "legend-card" + (isSelected ? " active-filter" : "");
+            card.innerHTML = `
+              <div class="legend-left">
+                <span class="legend-dot" style="background-color: ${cat.color};"></span>
+                <span class="legend-title">${cat.icon} ${cat.name}</span>
+              </div>
+              <div class="legend-right">
+                <span class="legend-pct-tag">${cat.pct.toFixed(1)}%</span>
+                <span class="legend-val">¥${formatYen(cat.amount)}</span>
+              </div>
+            `;
+            card.addEventListener("click", () => {
+              if (currentFilterCategory === cat.name) {
+                currentFilterCategory = null;
+              } else {
+                currentFilterCategory = cat.name;
+              }
+              render();
+            });
+            legendGrid.appendChild(card);
+          });
+        }
+
+        // UI全体の再描画
+        function render() {
+          const allExpenses = loadExpenses();
+
+          // 月の表示更新
+          const monthStr = `${selectedYear}年${selectedMonth}月`;
+          document.getElementById("currentMonthText").textContent = monthStr;
+          document.getElementById("summaryMonthTitle").textContent = `${monthStr}の支出合計`;
+
+          const isCurrentRealMonth = (selectedYear === now.getFullYear() && selectedMonth === (now.getMonth() + 1));
+          document.getElementById("thisMonthBadge").style.display = isCurrentRealMonth ? "inline-block" : "none";
+
+          // 対象月のデータを抽出
+          const monthPrefix = `${selectedYear}-${padZero(selectedMonth)}`;
+          const monthExpenses = allExpenses.filter(item => item.date.startsWith(monthPrefix));
+
+          // 今月の合計
+          const totalAmount = monthExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+          document.getElementById("totalAmountDisplay").textContent = formatYen(totalAmount);
+          document.getElementById("recordCountBadge").textContent = `${monthExpenses.length} 件`;
+
+          // 1日あたりの平均
+          const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+          const passedDays = isCurrentRealMonth ? Math.min(now.getDate(), daysInMonth) : daysInMonth;
+          const dailyAvg = passedDays > 0 ? Math.round(totalAmount / passedDays) : 0;
+          document.getElementById("dailyAvgDisplay").textContent = `¥${formatYen(dailyAvg)} / 日`;
+
+          // カテゴリごとの集計
+          const categoryTotals = {};
+          const categoryCounts = {};
+          CATEGORIES.forEach(c => {
+            categoryTotals[c.name] = 0;
+            categoryCounts[c.name] = 0;
+          });
+
+          monthExpenses.forEach(item => {
+            if (categoryTotals[item.category] !== undefined) {
+              categoryTotals[item.category] += Number(item.amount);
+              categoryCounts[item.category] += 1;
+            } else {
+              categoryTotals["その他"] += Number(item.amount);
+              categoryCounts["その他"] += 1;
+            }
+          });
+
+          // 最も支出の多いカテゴリを特定
+          let maxCat = "-";
+          let maxAmt = 0;
+          CATEGORIES.forEach(c => {
+            if (categoryTotals[c.name] > maxAmt) {
+              maxAmt = categoryTotals[c.name];
+              maxCat = `${c.icon} ${c.name}`;
+            }
+          });
+          document.getElementById("topCategoryDisplay").textContent = maxAmt > 0 ? maxCat : "記録なし";
+
+          // 円グラフと凡例の描画
+          renderPieChart(categoryTotals, totalAmount);
+
+          // カテゴリ別カード一覧を描画
+          const summaryGrid = document.getElementById("categorySummaryGrid");
+          summaryGrid.innerHTML = "";
+          CATEGORIES.forEach(c => {
+            const amt = categoryTotals[c.name];
+            const cnt = categoryCounts[c.name];
+            const pct = totalAmount > 0 ? Math.round((amt / totalAmount) * 100) : 0;
+
+            const card = document.createElement("div");
+            card.className = "cat-sum-item" + (currentFilterCategory === c.name ? " active-filter" : "");
+            card.innerHTML = `
+              <div class="cat-sum-top">
+                <span class="cat-sum-label">
+                  <span>${c.icon}</span>
+                  <span>${c.name}</span>
+                </span>
+                <span class="cat-sum-count">${cnt}件 (${pct}%)</span>
+              </div>
+              <div class="cat-sum-amount">¥${formatYen(amt)}</div>
+              <div class="cat-sum-bar-bg">
+                <div class="cat-sum-bar-fill" style="width: ${pct}%; background-color: ${c.color};"></div>
+              </div>
+            `;
+            card.addEventListener("click", () => {
+              if (currentFilterCategory === c.name) {
+                currentFilterCategory = null; // 解除
+              } else {
+                currentFilterCategory = c.name;
+              }
+              render();
+            });
+            summaryGrid.appendChild(card);
+          });
+
+          // フィルターバッジ表示
+          const filterBadgeWrapper = document.getElementById("filterBadgeWrapper");
+          if (currentFilterCategory) {
+            const meta = getCategoryMeta(currentFilterCategory);
+            filterBadgeWrapper.innerHTML = `
+              <span class="filter-active-tag">
+                ${meta.icon} ${meta.name}で絞り込み中
+                <button type="button" class="filter-reset-btn" id="resetFilterBtn" title="解除">✕</button>
+              </span>
+            `;
+            document.getElementById("resetFilterBtn").addEventListener("click", (e) => {
+              e.stopPropagation();
+              currentFilterCategory = null;
+              render();
+            });
+          } else {
+            filterBadgeWrapper.innerHTML = "";
+          }
+
+          // 履歴リストの描画（月内かつフィルタ条件）
+          let filteredExpenses = monthExpenses;
+          if (currentFilterCategory) {
+            filteredExpenses = monthExpenses.filter(item => item.category === currentFilterCategory);
+          }
+
+          // 日付の降順でソート（同じ日付なら作成順）
+          filteredExpenses.sort((a, b) => {
+            if (b.date !== a.date) return b.date.localeCompare(a.date);
+            return (b.createdAt || 0) - (a.createdAt || 0);
+          });
+
+          const historyList = document.getElementById("historyList");
+          historyList.innerHTML = "";
+
+          if (filteredExpenses.length === 0) {
+            historyList.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-icon">📝</div>
+                <p>${currentFilterCategory ? `「${currentFilterCategory}」の支出データはありません` : `${monthStr}の支出はまだ登録されていません`}</p>
+                ${allExpenses.length === 0 ? `<button type="button" class="sample-data-btn" id="emptySampleBtn">見本データを追加して試す</button>` : ""}
+              </div>
+            `;
+            const emptySample = document.getElementById("emptySampleBtn");
+            if (emptySample) {
+              emptySample.addEventListener("click", addSampleData);
+            }
+          } else {
+            filteredExpenses.forEach(item => {
+              const meta = getCategoryMeta(item.category);
+              const div = document.createElement("div");
+              div.className = "history-item";
+              div.innerHTML = `
+                <div class="item-left">
+                  <div class="item-cat-icon" style="background-color: ${meta.bg}; color: ${meta.color};">
+                    ${meta.icon}
+                  </div>
+                  <div class="item-details">
+                    <div class="item-cat-name">
+                      <span>${item.category}</span>
+                    </div>
+                    <div class="item-date">${item.date}</div>
+                    ${item.memo ? `<div class="item-memo" title="${escapeHtml(item.memo)}">${escapeHtml(item.memo)}</div>` : ""}
+                  </div>
+                </div>
+                <div class="item-right">
+                  <div class="item-amount">-¥${formatYen(item.amount)}</div>
+                  <button type="button" class="item-del-btn" data-id="${item.id}" aria-label="削除">削除</button>
+                </div>
+              `;
+              historyList.appendChild(div);
+            });
+
+            // 削除ボタンのイベント紐付け
+            document.querySelectorAll(".item-del-btn").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                const id = btn.getAttribute("data-id");
+                if (confirm("この支出を削除しますか？")) {
+                  deleteExpense(id);
+                }
+              });
+            });
+          }
+        }
+
+        function escapeHtml(str) {
+          if (!str) return "";
+          return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+
+        function deleteExpense(id) {
+          const list = loadExpenses();
+          const filtered = list.filter(item => String(item.id) !== String(id));
+          saveExpenses(filtered);
+          showToast("支出を削除しました");
+          render();
+        }
+
+        // 見本データの追加
+        function addSampleData() {
+          const list = loadExpenses();
+          const today = getTodayString();
+          const yesterday = getYesterdayString();
+
+          const samples = [
+            { id: Date.now() + 1, date: today, amount: 680, category: "飲食代", memo: "お弁当・お茶", createdAt: Date.now() },
+            { id: Date.now() + 2, date: today, amount: 420, category: "交通費", memo: "地下鉄運賃", createdAt: Date.now() + 1 },
+            { id: Date.now() + 3, date: yesterday, amount: 1540, category: "本、雑誌", memo: "話題の新刊本", createdAt: Date.now() + 2 },
+            { id: Date.now() + 4, date: yesterday, amount: 330, category: "文具", memo: "ノートとペン", createdAt: Date.now() + 3 },
+            { id: Date.now() + 5, date: yesterday, amount: 1800, category: "レジャー", memo: "映画チケット", createdAt: Date.now() + 4 },
+            { id: Date.now() + 6, date: yesterday, amount: 850, category: "薬", memo: "目薬と風邪薬", createdAt: Date.now() + 5 },
+          ];
+
+          saveExpenses([...list, ...samples]);
+          showToast("見本データを追加しました");
+          render();
+        }
+
+        // CSVエクスポート
+        function exportCsv() {
+          const list = loadExpenses();
+          if (list.length === 0) {
+            alert("エクスポートするデータがありません。");
+            return;
+          }
+
+          let csvContent = "\uFEFF日付,カテゴリ,金額,メモ\n";
+          list.sort((a, b) => b.date.localeCompare(a.date));
+          list.forEach(row => {
+            const memoEscaped = `"${(row.memo || "").replace(/"/g, '""')}"`;
+            csvContent += `${row.date},${row.category},${row.amount},${memoEscaped}\n`;
+          });
+
+          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.setAttribute("href", url);
+          link.setAttribute("download", `シンプル家計簿_${getTodayString()}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          showToast("CSVファイルをダウンロードしました");
+        }
+
+        // 初期化処理
+        function init() {
+          // 日付フォームの初期値を今日に設定
+          const dateInput = document.getElementById("expenseDate");
+          dateInput.value = getTodayString();
+
+          document.getElementById("todayBtn").addEventListener("click", () => {
+            dateInput.value = getTodayString();
+          });
+
+          document.getElementById("yesterdayBtn").addEventListener("click", () => {
+            dateInput.value = getYesterdayString();
+          });
+
+          // クイック金額追加ボタン
+          const amtInput = document.getElementById("expenseAmount");
+          document.querySelectorAll(".quick-amt-btn[data-amt]").forEach(btn => {
+            btn.addEventListener("click", () => {
+              const addVal = parseInt(btn.getAttribute("data-amt"), 10);
+              const currentVal = parseInt(amtInput.value || "0", 10);
+              amtInput.value = currentVal + addVal;
+            });
+          });
+
+          document.getElementById("clearAmtBtn").addEventListener("click", () => {
+            amtInput.value = "";
+            amtInput.focus();
+          });
+
+          // 月ナビゲーション
+          document.getElementById("prevMonthBtn").addEventListener("click", () => {
+            if (selectedMonth === 1) {
+              selectedYear -= 1;
+              selectedMonth = 12;
+            } else {
+              selectedMonth -= 1;
+            }
+            render();
+          });
+
+          document.getElementById("nextMonthBtn").addEventListener("click", () => {
+            if (selectedMonth === 12) {
+              selectedYear += 1;
+              selectedMonth = 1;
+            } else {
+              selectedMonth += 1;
+            }
+            render();
+          });
+
+          // カテゴリボタン初期化
+          initCategoryButtons();
+
+          // フォーム送信
+          const form = document.getElementById("expenseForm");
+          form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const date = dateInput.value;
+            const amount = parseInt(amtInput.value, 10);
+            const category = document.getElementById("selectedCategory").value;
+            const memo = document.getElementById("expenseMemo").value.trim();
+
+            if (!date) {
+              alert("日付を入力してください。");
+              return;
+            }
+
+            if (!amount || amount <= 0) {
+              alert("正しい金額を入力してください。");
+              amtInput.focus();
+              return;
+            }
+
+            if (!category) {
+              alert("カテゴリを選択してください。");
+              return;
+            }
+
+            const newExpense = {
+              id: Date.now() + Math.random().toString(36).substring(2, 6),
+              date,
+              amount,
+              category,
+              memo,
+              createdAt: Date.now()
+            };
+
+            const expenses = loadExpenses();
+            expenses.push(newExpense);
+            saveExpenses(expenses);
+
+            // 登録した支出の年月に表示を合わせる
+            const [itemY, itemM] = date.split("-").map(Number);
+            selectedYear = itemY;
+            selectedMonth = itemM;
+
+            // 入力欄リセット（日付は今日のまま維持）
+            amtInput.value = "";
+            document.getElementById("expenseMemo").value = "";
+
+            showToast("支出を記録しました！");
+            render();
+          });
+
+          // ツールボタン
+          document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
+          document.getElementById("sampleDataBtn").addEventListener("click", addSampleData);
+          document.getElementById("clearAllBtn").addEventListener("click", () => {
+            if (confirm("本当に保存された全家計簿データを消去しますか？（元に戻せません）")) {
+              if (confirm("確認のため、もう一度伺います。完全に消去してもよろしいですか？")) {
+                localStorage.removeItem(STORAGE_KEY);
+                showToast("全データを消去しました");
+                render();
+              }
+            }
+          });
+
+          // 初回描画
+          render();
+        }
+
+        // DOMContentLoadedで実行
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init);
+        } else {
+          init();
+        }
+      })();
+    </script>
+  </body>
+</html>
